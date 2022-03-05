@@ -36,8 +36,7 @@ class AutoRoller {
             assert(!planet || planet instanceof Planet);
             assert(player instanceof Player);
             console.log(
-                `onButton(${rollType}, ${
-                    planet && planet.localeName
+                `onButton(${rollType}, ${planet && planet.localeName
                 }, ${player.getName()})`
             );
             this.roll(rollType, planet, player);
@@ -96,15 +95,15 @@ class AutoRoller {
         assert(typeof rollType === "string");
         assert(!planet || planet instanceof Planet);
         assert(player instanceof Player);
-        
+
         const isEndTurn = rollType === "endTurn";
-        if (isEndTurn){
+        if (isEndTurn) {
             world.TI4.turns.endTurn(player);
             return;
         }
 
         const isFinMove = rollType === "finishMove";
-        if (isFinMove){
+        if (isFinMove) {
             const playerDesk = world.TI4.getPlayerDeskByPlayerSlot(
                 player.getSlot()
             );
@@ -119,7 +118,7 @@ class AutoRoller {
         }
 
         const isAnnounceRetreat = rollType === "announceRetreat";
-        if (isAnnounceRetreat){
+        if (isAnnounceRetreat) {
             const playerDesk = world.TI4.getPlayerDeskByPlayerSlot(
                 player.getSlot()
             );
@@ -134,7 +133,7 @@ class AutoRoller {
         }
 
         const isProduction = rollType === "production";
-        if (isProduction){
+        if (isProduction) {
             const playerDesk = world.TI4.getPlayerDeskByPlayerSlot(
                 player.getSlot()
             );

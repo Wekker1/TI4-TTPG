@@ -44,7 +44,7 @@ class AutoRollerUI extends Border {
 
     _update(panels) {
         assert(typeof panels === typeof [])
-        this.setChild(panels[panels.length-1]);
+        this.setChild(panels[panels.length - 1]);
 
         if (this._gameObject && this._uiElement) {
             this._gameObject.updateUI(this._uiElement);
@@ -91,6 +91,8 @@ class AutoRollerUI extends Border {
             hpanel.addChild(lbox1);
             lbox2.setChild(hpanel)
             parent[parent.length - 1].addChild(lbox2);
+
+
         };
 
         const addVerticalSubPanel = (parent, spacing) => {
@@ -111,11 +113,11 @@ class AutoRollerUI extends Border {
         //Strategic Action Panel
         panels.push(new VerticalBox().setChildDistance(5));
         addText(panels, locale("ui.strategy.instructions"));
-        
+
         //Component Action Panel
         panels.push(new VerticalBox().setChildDistance(5));
         addText(panels, locale("ui.component.instructions"));
-        
+
         const actionTypes = new TabbedPanel(false).addTab(locale("ui.tab.tactical_action"), panels[0], true).addTab(locale("ui.tab.strategic_action"), panels[1], false).addTab(locale("ui.tab.component_action"), panels[2], false);
         panels.push(new VerticalBox().setChildDistance(5).addChild(actionTypes));
 
@@ -218,12 +220,12 @@ class AutoRollerUI extends Border {
             parent[parent.length - 1].addChild(lbox);
         };
 
-        
+
         //Movement step
         addLayoutText(panels, locale("ui.label.movement"), 12, false, -1, -1, "Handel_Gothic_Regular.otf");
         addHorizontalSubPanel(panels, 2);
         addLayoutButton(panels, locale("ui.movement.finish_movement"), "finishMove", false, 10, 150, -1);
-        addGap(panels,5,0,0,0)
+        addGap(panels, 5, 0, 0, 0)
         addLayoutButton(panels, "ui.roller.space_cannon_offense", "spaceCannon", false, 10, 150, -1);
         panels.pop();
 
@@ -255,11 +257,11 @@ class AutoRollerUI extends Border {
         //Strategic Action Panel
         panels.push(new VerticalBox().setChildDistance(5));
         addText(panels, locale("ui.strategy.instructions"));
-        
+
         //Component Action Panel
         panels.push(new VerticalBox().setChildDistance(5));
         addText(panels, locale("ui.component.instructions"));
-        
+
         const actionTypes = new TabbedPanel(false).addTab(locale("ui.tab.tactical_action"), panels[0], true).addTab(locale("ui.tab.strategic_action"), panels[1], false).addTab(locale("ui.tab.component_action"), panels[2], false);
         panels.push(new VerticalBox().setChildDistance(5).addChild(actionTypes));
         addLayoutButton(panels, locale("ui.action.end_turn"), "endTurn", false, 12, 300, -1);

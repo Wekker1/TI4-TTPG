@@ -57,10 +57,10 @@ class Turns {
         );
     }
 
-    endTurn(player){
+    endTurn(player) {
         assert(player instanceof Player);
 
-        if(!this._currentTurn || !(player.getSlot() == this._currentTurn._playerSlot)){
+        if (!this._currentTurn || !(player.getSlot() == this._currentTurn._playerSlot)) {
             return;
         }
 
@@ -78,16 +78,16 @@ class Turns {
         var nextPlayer = undefined;
 
         this._turnOrder.every((_playerDesk) => {
-            if(nextTurn){ 
+            if (nextTurn) {
                 nextPlayer = _playerDesk;
                 return false;
             }
-            if(_playerDesk.colorName == this._currentTurn._colorName){
+            if (_playerDesk.colorName == this._currentTurn._colorName) {
                 nextTurn = true;
             }
             return true;
         });
-        if(!nextPlayer){
+        if (!nextPlayer) {
             nextPlayer = this._turnOrder[0];
         }
 
