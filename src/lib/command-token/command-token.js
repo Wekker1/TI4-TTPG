@@ -1,7 +1,6 @@
 const assert = require("../../wrapper/assert-wrapper");
 const locale = require("../locale");
 const { Broadcast } = require("../broadcast");
-const { CloneReplace } = require("../clone-replace");
 const { Hex } = require("../hex");
 const { ObjectNamespace } = require("../object-namespace");
 const {
@@ -9,6 +8,7 @@ const {
     GameObject,
     Player,
     Rotator,
+    Vector,
     globalEvents,
     world,
 } = require("../../wrapper/api");
@@ -79,7 +79,7 @@ class CommandToken {
     static _sortTokensByRegion(sheetAndTokens) {
         assert(sheetAndTokens.commandSheet);
 
-        sheetAndTokens.tactic = [];
+        sheetAndTokens.tactics = [];
         sheetAndTokens.fleet = [];
         sheetAndTokens.strategy = [];
 
@@ -93,13 +93,30 @@ class CommandToken {
             // Which region?
             let angle = (Math.atan2(pos.y, pos.x) * 180) / Math.PI;
             if (-30 < angle && angle <= 30) {
-                sheetAndTokens.tactic.push(token);
+                sheetAndTokens.tactics.push(token);
             } else if (30 < angle && angle <= 90) {
                 sheetAndTokens.fleet.push(token);
             } else if (90 < angle && angle <= 150) {
                 sheetAndTokens.strategy.push(token);
             }
         }
+    }
+
+    static getPlayerSlotToTokenCount() {
+        const playerSlotToSheetAndTokens =
+            CommandToken._getAllCommandSheetsAndTokens();
+        const result = {};
+        for (const [playerSlotStr, sheetAndTokens] of Object.entries(
+            playerSlotToSheetAndTokens
+        )) {
+            CommandToken._sortTokensByRegion(sheetAndTokens);
+            result[playerSlotStr] = {
+                tactics: sheetAndTokens.tactics.length,
+                fleet: sheetAndTokens.fleet.length,
+                strategy: sheetAndTokens.strategy.length,
+            };
+        }
+        return result;
     }
 
     /**
@@ -118,7 +135,7 @@ class CommandToken {
         }
         assert(sheetAndTokens);
         CommandToken._sortTokensByRegion(sheetAndTokens);
-        return sheetAndTokens.tactic[0];
+        return sheetAndTokens.tactics[0];
     }
 
     static getPlayerSlotToCommandTokenBag() {
@@ -158,7 +175,6 @@ class CommandToken {
             let token = commandTokenBag.getItems()[0];
             const above = commandTokenBag.getPosition().add([0, 0, 10]);
             commandTokenBag.take(token, above, false);
-            token = CloneReplace.cloneReplace(token);
             return token;
         }
     }
@@ -167,17 +183,21 @@ class CommandToken {
         assert(systemTileObj instanceof GameObject);
         assert(commandToken instanceof GameObject);
 
-        const pos = systemTileObj.localPositionToWorld([0, -4.7, 10 + extraZ]);
-        let numTokens = 0;
-        const src = pos.add([0, 0, 50]);
-        const dst = pos.subtract([0, 0, 50]);
-        const hits = world.lineTrace(src, dst);
-        for (const hit of hits) {
-            if (ObjectNamespace.isCommandToken(hit.object)) {
-                numTokens += 1;
-            }
-        }
-        const rot = new Rotator(0, numTokens * 20, 0);
+        // Drop at different positions but consistet for each player.
+        const playerCount = world.TI4.config.playerCount;
+        const playerSlot = commandToken.getOwningPlayerSlot();
+        const playerDesk = world.TI4.getPlayerDeskByPlayerSlot(playerSlot);
+        const index = playerDesk ? playerDesk.index : 0;
+
+        const r = 3.5;
+        const phi = (Math.PI * 2 * index) / playerCount;
+        let pos = new Vector(Math.cos(phi) * r, Math.sin(phi) * r, 0);
+        pos = systemTileObj.localPositionToWorld(pos).add([0, 0, 10 + extraZ]);
+
+        // Point toward center.
+        const angle = (phi * 180) / Math.PI - 30;
+        const rot = new Rotator(0, angle, 0);
+
         commandToken.setPosition(pos, 1);
         commandToken.setRotation(rot, 1);
     }
@@ -237,7 +257,7 @@ class CommandToken {
             const commandToken = CommandToken.getReinforcementsToken(deskSlot);
             if (!commandToken) {
                 const msg = locale("ui.error.diplomacy_no_token", {
-                    name: deskSlot.colorName,
+                    name: playerDesk.colorName,
                 });
                 Broadcast.broadcastAll(msg);
                 continue;

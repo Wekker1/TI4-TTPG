@@ -12,7 +12,9 @@ const { SetupGenericTech } = require("../../setup/setup-generic-tech");
 const { SetupPlayerMats } = require("../../setup/setup-player-mats");
 const { SetupSheets } = require("../../setup/setup-sheets");
 const { SetupStatusPads } = require("../../setup/setup-status-pads");
-const { SetupSupplyBoxes } = require("../../setup/setup-supply-boxes");
+const {
+    SetupSupplyBoxesDesks,
+} = require("../../setup/setup-supply-boxes-desks");
 const { SetupUnits } = require("../../setup/setup-units");
 
 const {
@@ -61,11 +63,15 @@ class PlayerDeskSetup {
         setups.forEach((setup) => setup.clean());
     }
 
-    setupFaction() {
+    setupFaction(factionNsidName) {
         let faction = false;
-        const factionToken = FactionToken.getByPlayerDesk(this._playerDesk);
+        const factionToken =
+            !factionNsidName && FactionToken.getByPlayerDesk(this._playerDesk);
 
-        if (factionToken) {
+        if (factionNsidName) {
+            faction = world.TI4.getFactionByNsidName(factionNsidName);
+            assert(faction);
+        } else if (factionToken) {
             // Found a faction token / reference card, use that.
             const above = factionToken.getPosition().add([0, 0, 15]);
             factionToken.setPosition(above);
@@ -122,7 +128,7 @@ class PlayerDeskSetup {
             new SetupGenericPromissory(this._playerDesk),
             new SetupGenericTech(this._playerDesk),
             new SetupPlayerMats(this._playerDesk),
-            new SetupSupplyBoxes(this._playerDesk),
+            new SetupSupplyBoxesDesks(this._playerDesk),
             new SetupSheets(this._playerDesk),
             new SetupStatusPads(this._playerDesk),
             new SetupUnits(this._playerDesk),

@@ -6,7 +6,7 @@ const { ObjectNamespace } = require("../lib/object-namespace");
 
 const STATUS_PAD = {
     nsid: "pad:base/status",
-    pos: { x: 20, y: 22, z: 0 },
+    pos: { x: 32, y: 0, z: 5 },
     yaw: 180,
 };
 
@@ -23,7 +23,6 @@ class SetupStatusPads extends AbstractSetup {
             this.playerDesk.rot
         );
         const playerSlot = this.playerDesk.playerSlot;
-        console.log(rot);
 
         const obj = Spawn.spawn(nsid, pos, rot);
         obj.setOwningPlayerSlot(playerSlot);

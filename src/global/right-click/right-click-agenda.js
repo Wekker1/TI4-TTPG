@@ -4,6 +4,28 @@ const { DealDiscard } = require("../../lib/card/deal-discard");
 const { ObjectNamespace } = require("../../lib/object-namespace");
 const { Card, globalEvents, world } = require("../../wrapper/api");
 
+function updateDescription(deck, onTop) {
+    if (!deck) {
+        deck = DealDiscard.getDeckWithReshuffle("card.agenda");
+    }
+    if (!deck) {
+        return;
+    }
+
+    let desc;
+    if (onTop === undefined) {
+        desc = locale("tile.strategy.politics");
+    } else {
+        desc = deck.getDescription();
+        const localeStr = onTop
+            ? "ui.menu.place_agenda_top"
+            : "ui.menu.place_agenda_bottom";
+        const str = locale(localeStr);
+        desc = desc + "\n" + str;
+    }
+    deck.setDescription(desc);
+}
+
 function _placeAgenda(agendaCard, onTop) {
     assert(agendaCard instanceof Card);
     assert(typeof onTop === "boolean");
@@ -18,60 +40,71 @@ function _placeAgenda(agendaCard, onTop) {
     const animate = true;
     const flipped = false;
     deck.addCards(agendaCard, toFront, offset, animate, flipped);
+
+    // Add to deck description.
+    updateDescription(deck, onTop);
 }
+
+const NAMES_AND_ACTIONS = [
+    {
+        localeName: "ui.menu.place_agenda_top",
+        placeTop: true,
+    },
+    {
+        localeName: "ui.menu.place_agenda_bottom",
+        placeTop: false,
+    },
+];
 
 function addRightClickOptions(agendaCard) {
     assert(agendaCard instanceof Card);
-    const namesAndActions = [
-        {
-            name: locale("ui.menu.place_agenda_top"),
-            action: (player) => {
-                _placeAgenda(agendaCard, true);
-            },
-        },
-        {
-            name: locale("ui.menu.place_agenda_bottom"),
-            action: (player) => {
-                _placeAgenda(agendaCard, false);
-            },
-        },
-    ];
 
     // Add as right-click options.
-    for (const nameAndAction of namesAndActions) {
-        agendaCard.addCustomAction("*" + nameAndAction.name);
+    for (const nameAndAction of NAMES_AND_ACTIONS) {
+        const actionName = "*" + locale(nameAndAction.localeName);
+        agendaCard.addCustomAction(actionName);
     }
-    agendaCard.onCustomAction.add((obj, player, actionName) => {
-        for (const nameAndAction of namesAndActions) {
-            if ("*" + nameAndAction.name === actionName) {
-                nameAndAction.action(player);
+    agendaCard.onCustomAction.add((obj, player, selectedActionName) => {
+        for (const nameAndAction of NAMES_AND_ACTIONS) {
+            const actionName = "*" + locale(nameAndAction.localeName);
+            if (selectedActionName === actionName) {
+                _placeAgenda(agendaCard, nameAndAction.placeTop);
                 break;
             }
         }
     });
+    agendaCard.__hasRightClickAgendaOptions = true;
 }
 
-globalEvents.onObjectCreated.add((obj) => {
-    const nsid = ObjectNamespace.getNsid(obj);
+function removeRightClickOptions(agendaCard) {
+    for (const nameAndAction of NAMES_AND_ACTIONS) {
+        const actionName = "*" + locale(nameAndAction.localeName);
+        agendaCard.removeCustomAction(actionName);
+    }
+    agendaCard.__hasRightClickAgendaOptions = false;
+}
+
+globalEvents.TI4.onSingletonCardCreated.add((card) => {
+    assert(card instanceof Card);
+    const nsid = ObjectNamespace.getNsid(card);
     if (nsid.startsWith("card.agenda")) {
-        addRightClickOptions(obj);
+        addRightClickOptions(card);
     }
 });
 
-// second to last card being drawn from a deck doesn't trigger onObjectCreated
-// for the last card in the deck
-for (const obj of world.getAllObjects()) {
-    if (obj instanceof Card && obj.getStackSize() > 1) {
-        obj.onRemoved.add((cardStack) => {
-            if (
-                cardStack.getStackSize() === 1 &&
-                ObjectNamespace.getNsid(cardStack).startsWith("card.agenda")
-            ) {
-                addRightClickOptions(obj);
-            }
-        });
+globalEvents.TI4.onSingletonCardMadeDeck.add((card) => {
+    assert(card instanceof Card);
+    if (card.__hasRightClickAgendaOptions) {
+        removeRightClickOptions(card);
     }
-}
+});
+
+globalEvents.TI4.onStrategyCardPlayed.add((strategyCardObj, player) => {
+    const parsed = ObjectNamespace.parseGeneric(strategyCardObj);
+    if (parsed && parsed.name.startsWith("politics")) {
+        updateDescription(undefined, undefined);
+    }
+});
 
 // Script reload doesn't call onObjectCreated on existing objects, load manually.
 if (world.getExecutionReason() === "ScriptReload") {

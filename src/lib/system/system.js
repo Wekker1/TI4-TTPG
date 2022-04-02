@@ -147,6 +147,10 @@ class Planet {
         return this._system;
     }
 
+    get traits() {
+        return this.raw.trait ? this.raw.trait : [];
+    }
+
     getNameStr() {
         return locale(this.localeName);
     }
@@ -160,6 +164,12 @@ class Planet {
             );
         }
         return m[1];
+    }
+
+    getPlanetCardNsid() {
+        const source = this.system.raw.source;
+        const name = this.getPlanetNsidName();
+        return `card.planet:${source}/${name}`;
     }
 }
 
@@ -249,6 +259,52 @@ class System {
             result.push(obj);
         }
         return result;
+    }
+
+    static summarize(tiles) {
+        assert(Array.isArray(tiles));
+        let res = 0;
+        let inf = 0;
+        let tech = [];
+        let wormholes = [];
+
+        for (const tile of tiles) {
+            const system = System.getByTileNumber(tile);
+            assert(system);
+            for (const planet of system.planets) {
+                res += planet.raw.resources;
+                inf += planet.raw.influence;
+                if (planet.raw.tech) {
+                    for (const planetTech of planet.raw.tech) {
+                        tech.push(planetTech.substring(0, 1).toUpperCase());
+                    }
+                }
+            }
+            for (const wormhole of system.wormholes) {
+                switch (wormhole) {
+                    case "alpha":
+                        wormholes.push("α");
+                        break;
+                    case "beta":
+                        wormholes.push("β");
+                        break;
+                    case "gamma":
+                        wormholes.push("γ");
+                        break;
+                    case "delta":
+                        wormholes.push("δ");
+                        break;
+                }
+            }
+        }
+        const result = [`${res}/${inf}`];
+        if (tech.length > 0) {
+            result.push(tech.sort().join(""));
+        }
+        if (wormholes.length > 0) {
+            result.push(wormholes.sort().join(""));
+        }
+        return result.join(" ");
     }
 
     /**

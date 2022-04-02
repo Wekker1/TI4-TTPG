@@ -2,7 +2,6 @@ const assert = require("../../wrapper/assert-wrapper");
 const locale = require("../locale");
 const { Broadcast } = require("../broadcast");
 const { CardUtil } = require("../card/card-util");
-const { CloneReplace } = require("../clone-replace");
 const { CommandToken } = require("../command-token/command-token");
 const { DealDiscard } = require("../card/deal-discard");
 const { Faction } = require("../faction/faction");
@@ -13,6 +12,7 @@ const { STRATEGY_CARDS } = require("../../setup/setup-strategy-cards");
 const {
     world,
     Card,
+    Container,
     GameObject,
     Rotator,
     Vector,
@@ -67,7 +67,8 @@ class DealActionCards {
             ])
         );
 
-        for (const playerSlot of FindTurnOrder.order()) {
+        for (const playerDesk of FindTurnOrder.order()) {
+            const playerSlot = playerDesk.playerSlot;
             const count =
                 DealActionCards.getNumberActionCardsToDeal(playerSlot);
             const message = locale("ui.message.deal_action_cards", {
@@ -167,6 +168,7 @@ class EndStatusPhase {
             hexSet.add(hex);
         }
 
+        const playerSlotToCommandTokens = {};
         for (const obj of world.getAllObjects()) {
             if (obj.getContainer()) {
                 continue;
@@ -183,11 +185,25 @@ class EndStatusPhase {
             if (playerSlot < 0) {
                 continue;
             }
+            let commandTokens = playerSlotToCommandTokens[playerSlot];
+            if (!commandTokens) {
+                commandTokens = [];
+                playerSlotToCommandTokens[playerSlot] = commandTokens;
+            }
+            commandTokens.push(obj);
+        }
+
+        for (const [playerSlot, commandTokens] of Object.entries(
+            playerSlotToCommandTokens
+        )) {
             const bag = playerSlotToCommandTokenBag[playerSlot];
             if (!bag) {
                 continue;
             }
-            bag.addObjects([obj]);
+            assert(bag instanceof Container);
+            assert(Array.isArray(commandTokens));
+            const animate = true;
+            bag.addObjects(commandTokens, 0, animate);
         }
     }
 
@@ -224,11 +240,10 @@ class EndStatusPhase {
                     Broadcast.chatAll(errorMessage);
                     break;
                 } else {
-                    const dropPosition = playerDesk.localPositionToWorld(
-                        new Vector(5, 20 + i * 1, 0)
-                    );
-                    let obj = commandTokenBag.takeAt(0, dropPosition, true);
-                    obj = CloneReplace.cloneReplace(obj);
+                    const dropPosition = playerDesk
+                        .localPositionToWorld(new Vector(5, 20 + i * 1, 0))
+                        .add([0, 0, 10]);
+                    commandTokenBag.takeAt(0, dropPosition, true);
                 }
             }
         }
@@ -258,7 +273,9 @@ class EndStatusPhase {
         assert(snapPoint);
         const pos = snapPoint.getGlobalPosition().add([0, 0, 3]);
         const yaw = snapPoint.getSnapRotation();
-        const rot = new Rotator(0, yaw, 0);
+        const rot = new Rotator(0, yaw, 0).compose(
+            strategyCardMat.getRotation()
+        );
         strategyCardObj.setPosition(pos, ANIMATION_SPEED);
         strategyCardObj.setRotation(rot, ANIMATION_SPEED);
     }
@@ -346,6 +363,19 @@ class EndStatusPhase {
             if (parsed.deck.includes("agent")) {
                 EndStatusPhase.makeFaceUp(obj);
             }
+        }
+    }
+
+    static resetPassedFlags(player) {
+        for (const obj of world.getAllObjects()) {
+            if (obj.getContainer()) {
+                continue;
+            }
+            const nsid = ObjectNamespace.getNsid(obj);
+            if (nsid !== "pad:base/status") {
+                continue;
+            }
+            obj.__setPass(false);
         }
     }
 }

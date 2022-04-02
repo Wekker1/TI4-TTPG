@@ -99,6 +99,10 @@ class Faction {
         return this._factionAttrs.faction;
     }
 
+    get icon() {
+        return this._factionAttrs.icon;
+    }
+
     get nsidSource() {
         return this._factionAttrs.source;
     }
@@ -109,6 +113,10 @@ class Faction {
 
     get nameFull() {
         return locale("faction.full." + this.nsidName);
+    }
+
+    get homeNsid() {
+        return `tile.system:${this.nsidSource}/${this.home}`;
     }
 }
 

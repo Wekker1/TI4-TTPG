@@ -25,7 +25,7 @@
 	"Flippable": true,
 	"AutoStraighten": false,
 	"ShouldSnap": false,
-	"ScriptName": "",
+	"ScriptName": "objects/scoreboard.js",
 	"Blueprint": "",
 	"Models": [
 		{
@@ -38,8 +38,8 @@
 			},
 			"Scale":
 			{
-				"X": 5.46702,
-				"Y": 5.46702,
+				"X": 6.56043,
+				"Y": 6.56043,
 				"Z": 4.16667
 			},
 			"Rotation":

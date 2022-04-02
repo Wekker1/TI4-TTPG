@@ -15,6 +15,10 @@ globalEvents.TI4 = {
     // <(deskPlayerSlot: number, player: Player|undefined) => void>
     onFactionChanged: new TriggerableMulticastDelegate(),
 
+    // Called after a player drops a control token on the final scoreboard slot.
+    // <(player: Player|undefined) => void>
+    onGameEnded: new TriggerableMulticastDelegate(),
+
     // Called after a player clicks the initial game "setup" button.
     // <(state: object, player: Player) => void>
     onGameSetup: new TriggerableMulticastDelegate(),
@@ -40,6 +44,10 @@ globalEvents.TI4 = {
     // <(systemTile: GameObject, player: Player) => void>
     onSystemActivated: new TriggerableMulticastDelegate(),
 
+    // Called when an attachment mutates a system (probably a planet).
+    // <(systemTile: GameObject) => void>
+    onSystemChanged: new TriggerableMulticastDelegate(),
+
     // Called when a Strategy Card is Played
     // <(strategyCard: GameObject, player: Player) => void>
     onStrategyCardPlayed: new TriggerableMulticastDelegate(),
@@ -61,8 +69,6 @@ globalEvents.TI4 = {
 const { PlayerDesk } = require("./lib/player-desk/player-desk");
 require("./setup/setup-secret-holders");
 
-// Show setup ui.
-require("./setup/game-setup/game-setup");
 if (!world.__isMock) {
     console.log("Welcome to Twilight Imperium IV");
 }
@@ -78,7 +84,7 @@ const { Turns } = require("./lib/turns");
 world.TI4 = {
     config: new GameSetupConfig(),
     gameData: new GameData(),
-    turns: new Turns(),
+    turns: new Turns(true),
 
     getActiveSystemTileObject: () => {
         return System.getActiveSystemTileObject();
@@ -103,6 +109,14 @@ world.TI4 = {
     },
     getFactionByPlayerSlot: (playerSlot) => {
         return Faction.getByPlayerSlot(playerSlot);
+    },
+    getNameByPlayerSlot: (playerSlot) => {
+        return (
+            world.TI4.getFactionByPlayerSlot(playerSlot)?.nameFull ||
+            world.TI4.getPlayerDeskByPlayerSlot(playerSlot)?.colorName ||
+            world.getPlayerBySlot(playerSlot).getName() ||
+            "<???>"
+        );
     },
     getPlanetByCard: (card) => {
         return Planet.getByCard(card);
@@ -131,16 +145,26 @@ world.TI4 = {
     },
 };
 
+require("./game-ui/game-ui");
 require("./global/active-idle-unit-modifiers");
+require("./global/gamedata-key");
 require("./global/numpad-actions");
 require("./global/on-container-rejected");
 require("./global/patch-infinite-container");
-require("./global/patch-exclusive-bags");
+require("./global/planet-card-attachments");
 require("./global/r-swap-split-combine");
 require("./global/right-click/right-click-system");
 require("./global/right-click/right-click-agenda");
 require("./global/right-click/right-click-purge");
+require("./global/right-click/right-click-score");
 require("./global/shuffle-decks-on-load");
+require("./global/snap-system-tiles");
 require("./global/strategy-card-functions");
+require("./global/trigger-on-game-ended");
 require("./global/trigger-on-singleton-card");
 require("./global/trigger-on-system-activated");
+require("./global/whisper-message");
+
+if (!world.__isMock) {
+    GameData.maybeRestartGameData();
+}

@@ -7,6 +7,7 @@ let _nextId = 1;
 class GameObject {
     constructor(data) {
         this._container = (data && data.container) || undefined;
+        this._extent = (data && data.extent) || new Vector(1, 1, 1);
         this._isHeld = (data && data.isHeld) || false;
         this._isInHolder = (data && data.isInHolder) || false;
         this._id = (data && data.id) || "abcd" + _nextId++;
@@ -19,6 +20,7 @@ class GameObject {
         this._primaryColor = data && data.primaryColor;
         this._rotation = (data && data.rotation) || new Rotator(0, 0, 0);
         this._savedData = (data && data.savedData) || "";
+        this._size = (data && data.size) || new Vector(1, 1, 1);
         this._templateId = (data && data.templateId) || "";
         this._templateMetadata = (data && data.templateMetadata) || "";
         this._uis = (data && data.uis) || [];
@@ -55,6 +57,10 @@ class GameObject {
 
     getContainer() {
         return this._container;
+    }
+
+    getExtent() {
+        return this._extent;
     }
 
     getId() {
@@ -95,6 +101,10 @@ class GameObject {
 
     getSavedData() {
         return this._savedData;
+    }
+
+    getSize() {
+        return this._size;
     }
 
     getTemplateId() {
@@ -147,6 +157,12 @@ class GameObject {
 
     toJSONString() {
         return "{}";
+    }
+
+    updateUI(uiElement) {}
+
+    localPositionToWorld(position) {
+        return position; // true if object at origin with no rotation...
     }
 
     worldPositionToLocal(position) {

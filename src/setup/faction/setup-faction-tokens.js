@@ -1,16 +1,16 @@
 const assert = require("../../wrapper/assert-wrapper");
 const { AbstractSetup } = require("../abstract-setup");
-const { CloneReplace } = require("../../lib/clone-replace");
 const { ObjectNamespace } = require("../../lib/object-namespace");
+const { Scoreboard } = require("../../lib/scoreboard/scoreboard");
 const { Spawn } = require("../spawn/spawn");
 const { Container, ObjectType, Rotator, world } = require("../../wrapper/api");
-const { Facing } = require("../../lib/facing");
 
 const COMMAND_TOKENS = {
     tokenNsidType: "token.command",
     tokenCount: 16,
     bagNsid: "bag.token.command:base/*",
-    bagPos: { x: -10.34, y: 39, z: 0 },
+    bagPos: { x: 8.028, y: 38.895, z: 0 },
+    bagYaw: 72,
     bagType: 2, // regular
     commandSheetLocalOffsets: [
         // Tactic
@@ -32,7 +32,12 @@ const CONTROL_TOKENS = {
     tokenCount: 1,
     bagNsid: "bag.token.control:base/*",
     bagType: 1, // infinite
-    bagPos: { x: -4.94, y: 40, z: 0 },
+    bagPos: {
+        x: 13.449,
+        y: 37.134,
+        z: 0,
+    },
+    bagYaw: COMMAND_TOKENS.bagYaw,
 };
 
 class SetupFactionTokens extends AbstractSetup {
@@ -91,9 +96,11 @@ class SetupFactionTokens extends AbstractSetup {
      */
     _spawnFactionTokensAndBag(tokenData) {
         const pos = this.playerDesk.localPositionToWorld(tokenData.bagPos);
-        const rot = this.playerDesk.rot;
+        const rot = new Rotator(0, tokenData.bagYaw, 0).compose(
+            this.playerDesk.rot
+        );
         const playerSlot = this.playerDesk.playerSlot;
-        const color = this.playerDesk.color;
+        const color = this.playerDesk.plasticColor;
 
         // Spawn bag.
         const bagNsid = tokenData.bagNsid;
@@ -125,35 +132,21 @@ class SetupFactionTokens extends AbstractSetup {
     }
 
     _placeScoreboradControlToken() {
-        let scoreboard = false;
-        for (const obj of world.getAllObjects()) {
-            if (obj.getContainer()) {
-                continue;
-            }
-            const nsid = ObjectNamespace.getNsid(obj);
-            if (nsid !== "token:base/scoreboard") {
-                continue;
-            }
-            scoreboard = obj;
-            break;
-        }
-        if (!scoreboard) {
+        const scoreboard = Scoreboard.getScoreboard();
+        const score = 0;
+        const playerSlot = this.playerDesk.playerSlot;
+        const posRot = Scoreboard.getTokenScoreboardPosRot(
+            scoreboard,
+            score,
+            playerSlot
+        );
+        if (!posRot) {
             return;
         }
 
         const tokenNsid = `token.control:${this.faction.nsidSource}/${this.faction.nsidName}`;
-        let x = 16;
-        if (Facing.isFaceDown(scoreboard)) {
-            x = -x;
-        }
-        const y =
-            -2 +
-            (4 * this.playerDesk.index) / (world.TI4.config.playerCount - 1);
-        const pos = scoreboard.localPositionToWorld([x, y, 0]).add([0, 0, 5]);
-        const rot = new Rotator(0, 0, 0);
-        const token = Spawn.spawn(tokenNsid, pos, rot);
+        const token = Spawn.spawn(tokenNsid, posRot.pos, posRot.rot);
 
-        const playerSlot = this.playerDesk.playerSlot;
         const color = this.playerDesk.color;
         token.setOwningPlayerSlot(playerSlot);
         token.setPrimaryColor(color);
@@ -186,11 +179,8 @@ class SetupFactionTokens extends AbstractSetup {
             ]);
             const token = commandTokensBag.takeAt(0, pos, true);
             token.setRotation(rot);
-
-            // Workaround for TTPG bug.
-            CloneReplace.cloneReplace(token);
         });
     }
 }
 
-module.exports = { SetupFactionTokens };
+module.exports = { SetupFactionTokens, COMMAND_TOKENS };

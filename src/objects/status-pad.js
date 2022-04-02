@@ -1,3 +1,7 @@
+const assert = require("../wrapper/assert-wrapper");
+const locale = require("../lib/locale");
+const { Broadcast } = require("../lib/broadcast");
+const { ObjectSavedData } = require("../lib/saved-data/object-saved-data");
 const TP = require("../wrapper/api");
 
 const btnUI = new TP.UIElement();
@@ -11,7 +15,7 @@ btnUI.widget = new TP.LayoutBox();
 btnUI.widget.setVerticalAlignment(0);
 btnUI.widget.setHorizontalAlignment(0);
 btnUI.widget.setMinimumWidth(300);
-btnUI.widget.setMinimumHeight(100);
+btnUI.widget.setMinimumHeight(120);
 
 pnlUI.position = new TP.Vector(-0.5, 0, 0.8);
 pnlUI.rotation = new TP.Rotator(15, 0, 0);
@@ -24,14 +28,18 @@ pnlUI.widget.setHorizontalAlignment(0);
 pnlUI.widget.setMinimumWidth(400);
 pnlUI.widget.setMinimumHeight(300);
 
-let isAway = false;
-let isPass = false;
+const obj = TP.refObject; // get reference now, cannot use later
+const packageId = TP.refPackageId;
 
-const awayButton = new TP.Button().setText("Away").setFontSize(24);
-const passButton = new TP.Button().setText("Pass").setFontSize(24);
+const awayButton = new TP.Button()
+    .setText(locale("ui.button.away"))
+    .setFontSize(32);
+const passButton = new TP.Button()
+    .setText(locale("ui.button.pass"))
+    .setFontSize(32);
 
-const awayImage = new TP.ImageWidget().setImage("locale/ui/panel_away_off.png");
-const passImage = new TP.ImageWidget().setImage("locale/ui/panel_pass_off.png");
+const awayImage = new TP.ImageWidget();
+const passImage = new TP.ImageWidget();
 
 btnUI.widget.setChild(
     new TP.HorizontalBox()
@@ -44,21 +52,74 @@ pnlUI.widget.setChild(
     new TP.HorizontalBox().addChild(passImage).addChild(awayImage)
 );
 
-awayButton.onClicked = (btn, player) => {
-    isAway = !isAway;
+TP.refObject.addUI(btnUI);
+TP.refObject.addUI(pnlUI);
+
+function getAway() {
+    return ObjectSavedData.get(obj, "isAway", false);
+}
+
+function setAway(value) {
+    assert(typeof value === "boolean");
+    ObjectSavedData.set(obj, "isAway", value);
     awayImage.setImage(
-        isAway ? "locale/ui/panel_away_on.png" : "locale/ui/panel_away_off.png",
-        btn.getOwningObject().getScriptPackageId()
+        value ? "locale/ui/panel_away_on.png" : "locale/ui/panel_away_off.png",
+        packageId
     );
+}
+
+function getPass() {
+    return ObjectSavedData.get(obj, "isPass", false);
+}
+
+function setPass(value) {
+    assert(typeof value === "boolean");
+    ObjectSavedData.set(obj, "isPass", value);
+    passImage.setImage(
+        value ? "locale/ui/panel_pass_on.png" : "locale/ui/panel_pass_off.png",
+        packageId
+    );
+}
+
+awayButton.onClicked = (btn, player) => {
+    const newValue = !getAway();
+    setAway(newValue);
+
+    const playerSlot = obj.getOwningPlayerSlot();
+    const playerDesk = TP.world.TI4.getPlayerDeskByPlayerSlot(playerSlot);
+    const faction = TP.world.TI4.getFactionByPlayerSlot(playerSlot);
+    const playerName = faction ? faction.nameFull : playerDesk.colorName;
+    const localeMsg = newValue
+        ? "ui.message.player_away"
+        : "ui.message.player_here";
+    const msg = locale(localeMsg, { playerName });
+    const color = playerDesk ? playerDesk.color : player.getPlayerColor();
+    Broadcast.broadcastAll(msg, color);
 };
 
 passButton.onClicked = (btn, player) => {
-    isPass = !isPass;
-    passImage.setImage(
-        isPass ? "locale/ui/panel_pass_on.png" : "locale/ui/panel_pass_off.png",
-        btn.getOwningObject().getScriptPackageId()
-    );
+    const newValue = !getPass();
+    setPass(newValue);
+    if (newValue) {
+        const playerSlot = obj.getOwningPlayerSlot();
+        const playerDesk = TP.world.TI4.getPlayerDeskByPlayerSlot(playerSlot);
+        const faction = TP.world.TI4.getFactionByPlayerSlot(playerSlot);
+        const playerName = faction ? faction.nameFull : playerDesk.colorName;
+        const color = playerDesk ? playerDesk.color : player.getPlayerColor();
+        const msg = locale("ui.message.player_pass", { playerName });
+        Broadcast.broadcastAll(msg, color);
+    }
 };
 
-TP.refObject.addUI(btnUI);
-TP.refObject.addUI(pnlUI);
+TP.refObject.__getPass = () => {
+    return getPass();
+};
+
+TP.refObject.__setPass = (value) => {
+    assert(typeof value === "boolean");
+    setPass(value);
+};
+
+// "Set" the current values to update UI.
+setPass(getPass());
+setAway(getAway());

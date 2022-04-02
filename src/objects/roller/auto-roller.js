@@ -48,9 +48,18 @@ class AutoRoller {
             this.onSystemActivated(systemTile, player);
         };
         globalEvents.TI4.onSystemActivated.add(handler);
+
+        // New turn handler.
+        const newTurnHandler = () => {
+            assert(this instanceof AutoRoller);
+            this.getUI().resetAwaitingSystemActivation();
+        };
+        globalEvents.TI4.onTurnChanged.add(newTurnHandler);
+
         if (gameObject) {
             gameObject.onDestroyed.add((obj) => {
                 globalEvents.TI4.onSystemActivated.remove(handler);
+                globalEvents.TI4.onTurnChanged.remove(newTurnHandler);
             });
         }
 
@@ -112,7 +121,8 @@ class AutoRoller {
             Broadcast.broadcastAll(
                 locale("ui.message.finalize_movement", {
                     playerName: player.getName(),
-                }), color
+                }),
+                color
             );
             return;
         }
@@ -127,7 +137,8 @@ class AutoRoller {
             Broadcast.broadcastAll(
                 locale("ui.message.announce_retreat", {
                     playerName: player.getName(),
-                }), color
+                }),
+                color
             );
             return;
         }
@@ -144,7 +155,8 @@ class AutoRoller {
                     playerName: player.getName(),
                     systemTile: this._activeSystem.tile,
                     systemName: this._activeSystem.getSummaryStr(),
-                }), color
+                }),
+                color
             );
             return;
         }
